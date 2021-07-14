@@ -236,7 +236,7 @@ def benchmark(
     """
 
     ### load video
-
+    print('starting benchmark')
     cap = cv2.VideoCapture(video_path)
     ret, frame = cap.read()
     n_frames = (

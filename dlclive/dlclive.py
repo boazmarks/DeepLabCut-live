@@ -11,6 +11,7 @@ import glob
 import warnings
 import numpy as np
 import tensorflow as tf
+import cv2 as cv 
 
 try:
     TFVER = [int(v) for v in tf.__version__.split(".")]
@@ -428,9 +429,9 @@ class DLCLive(object):
             self.pose = pose[:, [1, 0, 2]]
 
         # display image if display=True before correcting pose for cropping/resizing
-
+        axis = self.get_axis(self.pose)
         if self.display is not None:
-            self.display.display_frame(frame, self.pose)
+            self.display.display_frame(frame, axis)
 
         # if frame is cropped, convert pose coordinates to original frame coordinates
 
@@ -451,6 +452,20 @@ class DLCLive(object):
             self.pose = self.processor.process(self.pose, **kwargs)
 
         return self.pose
+
+
+    def get_axis(self, pose):
+            model_points =np.array([[0, 0, 1.5], [100, 0, 1.5], [100, 80, 1.5], [0, 80, 1.5], [50, 40, 1.5]]).astype(np.float32) 
+            mtrx = np.array([[701.02410521, 0, 328.22296801], [0, 701.08450187, 197.64795551], [0, 0, 1]]).astype(np.float32)
+            dist = np.array([0.06375453, 0.83368881, -0.01698222, 0.00447445, -3.47043424]).astype(np.float32)
+            pose = np.array(pose).astype(np.float32)
+            pose = pose[:, :2]
+            retp, rvec, tvec, inliers     = cv.solvePnPRansac(model_points, pose, mtrx, dist)
+            te =15
+            points3D     = np.array([[0,0,0],[te,0,0], [0,te,0], [0,0,te]]).astype(np.float32)
+            proj, jac = cv.projectPoints(points3D, rvec, tvec, mtrx, dist)
+            final = np.array(proj.squeeze()).tolist()
+            return [tuple(x) for x in final]  
 
     def close(self):
         """ Close tensorflow session
